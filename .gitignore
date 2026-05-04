@@ -1,0 +1,5 @@
+# Secret files – never commit passwords
+secrets/
+
+# Docker env file (contains non-sensitive config, but exclude if you prefer)
+# .env

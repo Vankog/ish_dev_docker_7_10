@@ -3,24 +3,31 @@ services:
   database:
     build:
       context: .
+      # Passwords are passed as BuildKit secrets – they are never stored in
+      # any image layer or visible via `docker history`.
+      secrets:
+        - sa_password
+        - db_password
       args:
-        - MSSQL_SA_PASSWORD
         - DB_USER
-        - DB_PASSWORD
-        - DB_NAME
-    image: ish_dev:mssql_2017_icm_db
-    container_name: ish_dev_mssql_2017_icm_db
+    image: ish_dev:mssql_2025_icm_db
+    container_name: ish_dev_mssql_2025_icm_db
     restart: always
     ports:
       - 1433:1433
     volumes:
       - mssql:/var/opt/mssql
+    secrets:
+      - sa_password
     environment:
-      - MSSQL_SA_PASSWORD
+      # Non-sensitive config – kept in .env
+      - DB_USER
+      # SA password is read from the secret file by startup.sh at runtime
     networks:
       - mssql
     healthcheck:
-      test: /opt/mssql-tools/bin/sqlcmd -b -S localhost -U sa -P $$MSSQL_SA_PASSWORD -b -Q :QUIT
+      # $$ is escaped in docker-compose YAML; the shell expands $(…) at runtime
+      test: /opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P "$$(cat /run/secrets/sa_password)" -Q "SELECT 1"
       timeout: 5s
       retries: 8
       interval: 30s
@@ -56,7 +63,7 @@ services:
 
 volumes:
   mssql:
-    name: ish_dev_mssql_2017_icm_db
+    name: ish_dev_mssql_2025_icm_db
   solr:
     name: ish_dev_solr_data
   mail_server:
@@ -67,3 +74,14 @@ networks:
   mssql:
   solr_zookeeper:
   smtp:
+
+
+# Secrets are read from files so passwords never appear in docker-compose.yml
+# or the .env file.  Create the files once (they are git-ignored):
+#   echo -n '!InterShop00!' > secrets/sa_password.txt
+#   echo -n '!InterShop00!' > secrets/db_password.txt
+secrets:
+  sa_password:
+    file: ./secrets/sa_password.txt
+  db_password:
+    file: ./secrets/db_password.txt
