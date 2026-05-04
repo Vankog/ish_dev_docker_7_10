@@ -1,0 +1,69 @@
+services:
+
+  database:
+    build:
+      context: .
+      args:
+        - MSSQL_SA_PASSWORD
+        - DB_USER
+        - DB_PASSWORD
+        - DB_NAME
+    image: ish_dev:mssql_2017_icm_db
+    container_name: ish_dev_mssql_2017_icm_db
+    restart: always
+    ports:
+      - 1433:1433
+    volumes:
+      - mssql:/var/opt/mssql
+    environment:
+      - MSSQL_SA_PASSWORD
+    networks:
+      - mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -b -S localhost -U sa -P $$MSSQL_SA_PASSWORD -b -Q :QUIT
+      timeout: 5s
+      retries: 8
+      interval: 30s
+      start_period: 10s
+
+  solr:
+    image: solr:8.11.2
+    container_name: solr
+    ports:
+     - 9983:9983 # zookeeper
+     - 8983:8983
+    volumes:
+      - solr:/var/solr
+    environment:
+      # ZooKeper refers to the SOLR instances via IP by default. However, the docker-internal IP ranges (172.x) cannot be resolved from the host system.
+      # Thus, we need to define a host name for each SOLR instance and add an according loopbacK entry to the hosts file.
+      - SOLR_HOST=solr # hosts file entry: "127.0.0.1 solr"
+      - SOLR_PORT=8983
+    command: solr -f -cloud
+    networks:
+      - solr_zookeeper
+
+  mail_server:
+    image: rnwood/smtp4dev:latest
+    container_name: smtp4dev
+    ports:
+      - 3000:80 # web interface
+      - 25:25   # smpt port
+    volumes:
+      - mail_server:/smtp4dev
+    networks:
+      - smtp
+
+volumes:
+  mssql:
+    name: ish_dev_mssql_2017_icm_db
+  solr:
+    name: ish_dev_solr_data
+  mail_server:
+    name: mail_server_data
+
+
+networks:
+  mssql:
+  solr_zookeeper:
+  smtp:
