@@ -3,13 +3,6 @@ services:
   database:
     build:
       context: .
-      # Passwords are passed as BuildKit secrets – they are never stored in
-      # any image layer or visible via `docker history`.
-      secrets:
-        - sa_password
-        - db_password
-      args:
-        - DB_USER
     image: ish_dev:mssql_2025_icm_db
     container_name: ish_dev_mssql_2025_icm_db
     restart: always
@@ -19,10 +12,6 @@ services:
       - mssql:/var/opt/mssql
     secrets:
       - sa_password
-    environment:
-      # Non-sensitive config – kept in .env
-      - DB_USER
-      # SA password is read from the secret file by startup.sh at runtime
     networks:
       - mssql
     healthcheck:
@@ -76,12 +65,9 @@ networks:
   smtp:
 
 
-# Secrets are read from files so passwords never appear in docker-compose.yml
-# or the .env file.  Create the files once (they are git-ignored):
-#   echo -n '!InterShop00!' > secrets/sa_password.txt
-#   echo -n '!InterShop00!' > secrets/db_password.txt
+# The SA password is read from a file so it never appears in docker-compose.yml
+# or the .env file.  Create the file once (it is git-ignored):
+#   printf '!InterShop00!' > secrets/sa_password.txt
 secrets:
   sa_password:
     file: ./secrets/sa_password.txt
-  db_password:
-    file: ./secrets/db_password.txt
