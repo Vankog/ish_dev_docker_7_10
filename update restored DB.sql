@@ -1,19 +1,35 @@
 /*
- * 
  * Name			: update ICMDB after restore
- * Description	: After the ISH DB was restored, this script updates the necessary properties and users.
- *				Based on original "createICMDB" script 
- *				from https://support.intershop.com/kb/index.php/Display/2863F2#GuideSetupMicrosoftSQLServerasIntershopDevelopmentDatabase-SQLScript 
- * Input		: DBName		- database name (required)
- *				PreviousUserID	- the old login name from the backup. Will be deleted if found. Does nothing if not found. (required)
- *				UserID			- new login name. Replaces 'PreviousUserID' (required)
- *				Password		- new password of login user (required)
- *				IsAzureDB		- is Azure Managed Instance  (possible values: TRUE, FALSE), default: FALSE
- *				Recovery		- Recovery model (possible values: FULL, SIMPLE, BULKLOGGED), default: FULL, only used if @IsAzureDB = 0
+ * Description	: After an Intershop ICM database backup was restored, this script re-applies the
+ *				  necessary collation, user login, ownership, and database settings so the restored
+ *				  database is ready for local development.
+ *
+ * Derived from	: "createIcmDB.sql" — the official Intershop SQL Server setup script published by
+ *				  Intershop Communications AG in their knowledge base:
+ *				    https://support.intershop.com/kb/index.php/Display/2863F2
+ *				    (direct link to original script:
+ *				     https://support.intershop.com/kb/index.php/Deliver/DOC/2863F2/createIcmDB.sql)
+ *				  The original script is proprietary to Intershop Communications AG and subject to
+ *				  their terms of use. This modified version is provided for personal development
+ *				  convenience only. Users are responsible for verifying their own compliance with
+ *				  Intershop's terms before using or redistributing this file.
+ *
+ * Changes from original:
+ *				  - Repurposed from initial DB creation to post-restore reconfiguration
+ *				  - Extract #updateCollation procedure to fix collation after restore
+ *
+ * Input		: DBName		  - database name (required)
+ *				  PreviousUserID  - the old user in the local DB; dropped if found, ignored if not found (required)
+ *				  UserID		  - new login name, replaces PreviousUserID (required)
+ *				  Password		  - password for the new login (required)
+ *				  IsAzureDB		  - Azure Managed Instance target (TRUE | FALSE), default: FALSE
+ *				  Recovery		  - recovery model (FULL | SIMPLE | BULKLOGGED),
+ *				                    default: FULL, ignored when @IsAzureDB = TRUE
+ *
  * Version		: 2.0.0
  * Example		: 	DECLARE @DBName SYSNAME = 'ish_icmpre_edit';
- *					EXEC #updateCollation @DBName; -- Will probably fail on first run. Just execute again.
- * 					EXEC #updateIcmDB	@DBName, 
+ *					EXEC #updateCollation @DBName; -- May fail on first run; execute again if so.
+ * 					EXEC #updateIcmDB	@DBName,
  *										@PreviousUserID = 'ish_icmint_edit',
  *										@UserID = 'ish_icmpre_edit',
  *										@Password = '!InterShop00!',

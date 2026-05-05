@@ -1,5 +1,7 @@
 # ICM Database, Solr and Dev SMTP Mail Server
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 This Docker Compose stack starts three local developer services:
 
 - Microsoft SQL Server with Full-Text Search
@@ -108,3 +110,9 @@ docker image rm ish_dev:mssql_2025_icm_db
 docker image rm solr:8.11.2
 docker image rm rnwood/smtp4dev:3.15.0
 ```
+
+## License
+
+The original project files (Dockerfile, docker-compose.yml, readme) are licensed under the [MIT License](LICENSE).
+
+**Note on [`update restored DB.sql`](update%20restored%20DB.sql):** This file is a modified derivative of the `createIcmDB.sql` script published by Intershop Communications AG in their [knowledge base](https://support.intershop.com/kb/index.php/Display/2863F2). That original work is proprietary to Intershop and subject to their terms of use. This modified version is shared for developer convenience and personal use only — if you use it, please verify your own compliance with Intershop's terms.
