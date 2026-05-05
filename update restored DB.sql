@@ -2,26 +2,24 @@
  * 
  * Name			: update ICMDB after restore
  * Description	: After the ISH DB was restored, this script updates the necessary properties and users.
- *				Based on "createICMDB" script 
+ *				Based on original "createICMDB" script 
  *				from https://support.intershop.com/kb/index.php/Display/2863F2#GuideSetupMicrosoftSQLServerasIntershopDevelopmentDatabase-SQLScript 
  * Input		: DBName		- database name (required)
- *				PreviousUserID	- the old login name from the backup. Will be deleted. (required)
+ *				PreviousUserID	- the old login name from the backup. Will be deleted if found. Does nothing if not found. (required)
  *				UserID			- new login name. Replaces 'PreviousUserID' (required)
- *				Password		- password of login user (required)
- *				RecreateDB		- recreate database if exists (possible values: TRUE, FALSE), default: FALSE
- *				RecreateUser	- recreate user if exists (possible values: TRUE, FALSE), default: FALSE
+ *				Password		- new password of login user (required)
  *				IsAzureDB		- is Azure Managed Instance  (possible values: TRUE, FALSE), default: FALSE
  *				Recovery		- Recovery model (possible values: FULL, SIMPLE, BULKLOGGED), default: FULL, only used if @IsAzureDB = 0
- * Version		: 1.0.0
- * Example		: DECLARE  @DBName SYSNAME = 'ish_icmpre_edit';
- *				  EXEC #updateCollation @DBName;
- *				  EXEC #updateIcmDB @DBName, 
- *						@PreviousUserID = 'ish_icmint_edit',
- *						@UserID = 'intershop', 
- *						@Password = '!InterShop00!', 
- *						@IsAzureDB = 'FALSE',
- *						@Recovery = 'SIMPLE';
-*/
+ * Version		: 2.0.0
+ * Example		: 	DECLARE @DBName SYSNAME = 'ish_icmpre_edit';
+ *					EXEC #updateCollation @DBName; -- Will probably fail on first run. Just execute again.
+ * 					EXEC #updateIcmDB	@DBName, 
+ *										@PreviousUserID = 'ish_icmint_edit',
+ *										@UserID = 'ish_icmpre_edit',
+ *										@Password = '!InterShop00!',
+ *										@IsAzureDB = 'FALSE',
+ *										@Recovery = 'SIMPLE';
+ */
 
 CREATE OR ALTER PROC #updateCollation
 			 @DBName SYSNAME
@@ -60,7 +58,7 @@ DECLARE  @Sql NVARCHAR(MAX),
 		 @tempDBName SYSNAME,
 		 @CurrentDBUser SYSNAME;
 
-/*-- Drop Old Login
+-- Drop Old Login
 IF EXISTS (SELECT 1 FROM [master].[sys].[server_principals] WHERE Name = @PreviousUserID)
 BEGIN
 	print 'Dropping existing user: ' + QUOTENAME(@PreviousUserID);
@@ -68,7 +66,6 @@ BEGIN
 	print 'Executing SQL: ' + @Sql;
 	EXECUTE sp_executesql @Sql;
 END;
-*/
 
 -- Create Login
 IF NOT EXISTS (SELECT 1 FROM [master].[sys].[server_principals] WHERE Name = @UserID)
@@ -157,12 +154,12 @@ END;
 GO
 
 USE [master]
-DECLARE @DBName SYSNAME = 'ish_icmpre_edit';
-EXEC #updateCollation @DBName;
+DECLARE @DBName SYSNAME = 'ish_icmpre_edit'; -- The imported DB to adjust.
+EXEC #updateCollation @DBName; -- Will probably fail on first run. Just execute again.
 EXEC #updateIcmDB	@DBName, 
-					@PreviousUserID = 'dontdropme',
-					@UserID = 'ish_icmpre_edit', 
-					@Password = '!InterShop00!', 
+					@PreviousUserID = 'ish_icmint_edit', -- Dropped user if found. Does nothing if not found.
+					@UserID = 'ish_icmpre_edit', -- It's easier to use the same user as used by the original system
+					@Password = '!InterShop00!', -- PW to set for the user.
 					@IsAzureDB = 'FALSE',
 					@Recovery = 'SIMPLE';
 GO
