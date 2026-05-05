@@ -15,8 +15,7 @@ services:
     networks:
       - mssql
     healthcheck:
-      # $$ is escaped in docker-compose YAML; the shell expands $(…) at runtime
-      test: /opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P "$$(cat /run/secrets/sa_password)" -Q "SELECT 1"
+      test: /opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P "$$(cat /run/secrets/sa_password)" -Q "SELECT 1; IF FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') = 0 RAISERROR('FTS not installed', 16, 1)"
       timeout: 5s
       retries: 8
       interval: 30s
