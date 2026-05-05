@@ -1,16 +1,18 @@
-FROM mcr.microsoft.com/mssql/server:2025-CU4-ubuntu-22.04
+FROM mcr.microsoft.com/mssql/server:2025-CU4-ubuntu-24.04
+
+# Full-Text Search package version ("mssql-server-fts")
+ARG FTS_VERSION=17.0.4035.5-1
 
 ENV ACCEPT_EULA=Y
 
 # Install Full-Text Search from the SQL Server 2025 package repository.
-# The base image only ships the database engine; FTS is a separate package.
-# After the .bacpac import, run `update restored DB.sql` to enable FTS on the
-# restored database.
+# Don't use 'apt install', because it would also re-install "mssql-server", which is already included in the base image.
+# Instead, download the .deb package and install it with 'dpkg', ignoring the dependency on "mssql-server".
 USER root
-RUN echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/22.04/mssql-server-2025 jammy main" \
+RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/mssql-server-2025 noble main" \
        > /etc/apt/sources.list.d/mssql-server-2025.list \
-    && apt-get update \
-    && apt-get download mssql-server-fts \
+    && apt-get update -qq \
+    && apt-get download mssql-server-fts=${FTS_VERSION} \
     && dpkg --force-depends -i mssql-server-fts_*.deb \
     && rm -f mssql-server-fts_*.deb \
     && rm -rf /var/lib/apt/lists/*
