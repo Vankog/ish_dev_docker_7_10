@@ -4,6 +4,7 @@ services:
     build:
       context: .
     image: ish_dev:mssql_2025_icm_db
+    pull_policy: never
     container_name: ish_dev_mssql_2025_icm_db
     restart: unless-stopped
     ports:
@@ -17,6 +18,8 @@ services:
       - MSSQL_SA_PASSWORD_FILE=/run/secrets/sa_password
     networks:
       - mssql
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P \"$$(cat /run/secrets/sa_password)\" -Q \"SELECT 1; IF FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') = 0 RAISERROR('FTS not installed', 16, 1)\""]
       timeout: 5s
@@ -26,6 +29,7 @@ services:
 
   solr:
     image: solr:8.11.2
+    pull_policy: missing
     container_name: solr
     restart: unless-stopped
     ports:
@@ -43,6 +47,8 @@ services:
     command: solr -f -cloud
     networks:
       - solr_zookeeper
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       # /api/node/health was added in Solr 8.1; returns {"status":"OK"} when the node is live.
       test: ["CMD-SHELL", "curl -sf http://localhost:8983/api/node/health | grep -q '\"status\":\"OK\"'"]
@@ -52,7 +58,8 @@ services:
       start_period: 30s
 
   mail_server:
-    image: rnwood/smtp4dev:latest
+    image: rnwood/smtp4dev:3.15.0
+    pull_policy: missing
     container_name: smtp4dev
     restart: unless-stopped
     ports:
@@ -62,6 +69,8 @@ services:
       - mail_server:/smtp4dev
     networks:
       - smtp
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       # /api/messages returning HTTP 200 confirms both the web server and message store are ready.
       test: ["CMD-SHELL", "curl -sf http://localhost:80/api/messages > /dev/null"]
