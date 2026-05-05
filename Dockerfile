@@ -19,9 +19,3 @@ RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] http
     && rm -f mssql-server-fts_*.deb \
     && rm -rf /var/lib/apt/lists/*
 USER mssql
-
-# --chmod=755 sets the executable bit without an extra RUN layer (requires BuildKit).
-# The SA password is injected at runtime via Docker secrets; nothing sensitive is baked in.
-COPY --chmod=755 src/startup.sh /startup.sh
-
-CMD ["/startup.sh"]

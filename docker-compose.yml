@@ -13,6 +13,8 @@ services:
       - mssql:/var/opt/mssql
     secrets:
       - sa_password
+    environment:
+      - MSSQL_SA_PASSWORD_FILE=/run/secrets/sa_password
     networks:
       - mssql
     healthcheck:
