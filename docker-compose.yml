@@ -5,9 +5,10 @@ services:
       context: .
     image: ish_dev:mssql_2025_icm_db
     container_name: ish_dev_mssql_2025_icm_db
-    restart: always
+    restart: unless-stopped
     ports:
-      - 1433:1433
+      # Bind to localhost only – avoids accidental exposure on all host interfaces.
+      - 127.0.0.1:1433:1433
     volumes:
       - mssql:/var/opt/mssql
     secrets:
@@ -15,7 +16,7 @@ services:
     networks:
       - mssql
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P "$$(cat /run/secrets/sa_password)" -Q "SELECT 1; IF FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') = 0 RAISERROR('FTS not installed', 16, 1)"
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P \"$$(cat /run/secrets/sa_password)\" -Q \"SELECT 1; IF FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') = 0 RAISERROR('FTS not installed', 16, 1)\""]
       timeout: 5s
       retries: 8
       interval: 30s
@@ -24,30 +25,48 @@ services:
   solr:
     image: solr:8.11.2
     container_name: solr
+    restart: unless-stopped
     ports:
-     - 9983:9983 # zookeeper
-     - 8983:8983
+      # Bind to localhost only. Add "127.0.0.1 solr" to your hosts file so that
+      # Solr's self-reported host name (SOLR_HOST) resolves from the host machine.
+      - 127.0.0.1:9983:9983 # ZooKeeper
+      - 127.0.0.1:8983:8983
     volumes:
       - solr:/var/solr
     environment:
-      # ZooKeper refers to the SOLR instances via IP by default. However, the docker-internal IP ranges (172.x) cannot be resolved from the host system.
-      # Thus, we need to define a host name for each SOLR instance and add an according loopbacK entry to the hosts file.
+      # ZooKeeper refers to Solr instances via IP by default. Because Docker-internal
+      # IPs (172.x) are not reachable from the host, we set a stable hostname.
       - SOLR_HOST=solr # hosts file entry: "127.0.0.1 solr"
       - SOLR_PORT=8983
     command: solr -f -cloud
     networks:
       - solr_zookeeper
+    healthcheck:
+      # /api/node/health was added in Solr 8.1; returns {"status":"OK"} when the node is live.
+      test: ["CMD-SHELL", "curl -sf http://localhost:8983/api/node/health | grep -q '\"status\":\"OK\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   mail_server:
     image: rnwood/smtp4dev:latest
     container_name: smtp4dev
+    restart: unless-stopped
     ports:
-      - 3000:80 # web interface
-      - 25:25   # smpt port
+      - 127.0.0.1:3000:80 # web interface
+      - 127.0.0.1:25:25   # SMTP port
     volumes:
       - mail_server:/smtp4dev
     networks:
       - smtp
+    healthcheck:
+      # /api/messages returning HTTP 200 confirms both the web server and message store are ready.
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/api/messages > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   mssql:
@@ -65,8 +84,7 @@ networks:
 
 
 # The SA password is read from a file so it never appears in docker-compose.yml
-# or the .env file.  Create the file once (it is git-ignored):
-#   printf '!InterShop00!' > secrets/sa_password.txt
+# or the .env file.  Create the file once (it is git-ignored).
 secrets:
   sa_password:
     file: ./secrets/sa_password.txt

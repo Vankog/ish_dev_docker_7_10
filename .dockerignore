@@ -1,0 +1,8 @@
+# Never bake secrets into the build context
+secrets/
+
+# Documentation and editor artefacts – not needed in the image
+*.md
+.git/
+.gitignore
+.env
