@@ -1,5 +1,4 @@
 services:
-
   database:
     build:
       context: .
@@ -21,14 +20,18 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P \"$$(cat /run/secrets/sa_password)\" -Q \"SELECT 1; IF FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') = 0 RAISERROR('FTS not installed', 16, 1)\""]
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mssql-tools18/bin/sqlcmd -b -C -S localhost -U sa -P "$$(cat /run/secrets/sa_password)" -Q "SELECT 1; IF FULLTEXTSERVICEPROPERTY(''IsFullTextInstalled'') = 0 RAISERROR(''FTS not installed'', 16, 1)"',
+        ]
       timeout: 5s
       retries: 8
       interval: 30s
       start_period: 10s
 
   solr:
-    image: solr:8.11.2
+    image: solr:9.10.1
     pull_policy: missing
     container_name: solr
     restart: unless-stopped
@@ -51,7 +54,11 @@ services:
       - no-new-privileges:true
     healthcheck:
       # /api/node/health was added in Solr 8.1; returns {"status":"OK"} when the node is live.
-      test: ["CMD-SHELL", "curl -sf http://localhost:8983/api/node/health | grep -q '\"status\":\"OK\"'"]
+      test:
+        [
+          "CMD-SHELL",
+          'curl -sf http://localhost:8983/api/node/health | grep -q ''"status":"OK"''',
+        ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -64,7 +71,7 @@ services:
     restart: unless-stopped
     ports:
       - 127.0.0.1:3000:80 # web interface
-      - 127.0.0.1:25:25   # SMTP port
+      - 127.0.0.1:25:25 # SMTP port
     volumes:
       - mail_server:/smtp4dev
     networks:
@@ -73,7 +80,8 @@ services:
       - no-new-privileges:true
     healthcheck:
       # /api/messages returning HTTP 200 confirms both the web server and message store are ready.
-      test: ["CMD-SHELL", "curl -sf http://localhost:80/api/messages > /dev/null"]
+      test:
+        ["CMD-SHELL", "curl -sf http://localhost:80/api/messages > /dev/null"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -87,12 +95,10 @@ volumes:
   mail_server:
     name: mail_server_data
 
-
 networks:
   mssql:
   solr_zookeeper:
   smtp:
-
 
 # The SA password is read from a file so it never appears in docker-compose.yml
 # or the .env file.  Create the file once (it is git-ignored).
