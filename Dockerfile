@@ -1,8 +1,14 @@
 # syntax=docker/dockerfile:1
-FROM mcr.microsoft.com/mssql/server:2025-CU4-ubuntu-24.04
+FROM mcr.microsoft.com/mssql/server:2025-CU6-ubuntu-24.04
 
 # Full-Text Search package version ("mssql-server-fts")
-ARG FTS_VERSION=17.0.4035.5-1
+# To update, resolve latest version from apt index:
+# curl -fsSL "https://packages.microsoft.com/ubuntu/24.04/mssql-server-2025/dists/noble/main/binary-amd64/Packages.gz" \
+#   | gzip -dc \
+#   | awk '/^Package: /{p=$2} /^Version: /{if(p=="mssql-server-fts") print $2}' \
+#   | sort -V \
+#   | tail -n 1
+ARG FTS_VERSION=17.0.4055.5-1
 
 ENV ACCEPT_EULA=Y
 
