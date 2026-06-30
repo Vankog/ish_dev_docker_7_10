@@ -31,7 +31,7 @@ services:
       start_period: 10s
 
   solr:
-    image: solr:9.10.1
+    image: solr:10.0.0
     pull_policy: missing
     container_name: solr
     restart: unless-stopped
@@ -45,9 +45,8 @@ services:
     environment:
       # ZooKeeper refers to Solr instances via IP by default. Because Docker-internal
       # IPs (172.x) are not reachable from the host, we set a stable hostname.
-      - SOLR_HOST=solr # hosts file entry: "127.0.0.1 solr"
+      - SOLR_HOST_ADVERTISE=solr # hosts file entry: "127.0.0.1 solr"
       - SOLR_PORT=8983
-    command: solr -f -cloud
     networks:
       - solr_zookeeper
     security_opt:
